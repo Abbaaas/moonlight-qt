@@ -27,5 +27,6 @@
         <file>gui/TvBackdrop.qml</file>
         <file>gui/TvTheme.qml</file>
         <file>gui/TvToast.qml</file>
+        <file>gui/TvSettingsView.qml</file>
     </qresource>
 </RCC>

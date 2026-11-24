@@ -12,6 +12,7 @@
 #include <QCursor>
 #include <QElapsedTimer>
 #include <QTemporaryFile>
+#include <QFileInfo>
 #include <QRegularExpression>
 
 #ifdef Q_OS_UNIX
@@ -996,10 +997,18 @@ int main(int argc, char *argv[])
     QString initialView;
     bool hasGUI = true;
 
+    // When this program is started as "MoonlightTvMode" (for example the
+    // MoonlightTvMode.exe copy that ships next to Moonlight.exe), always
+    // open in TV mode, whatever the "Start in TV mode" setting says.
+    bool launchedAsTvMode = QFileInfo(QCoreApplication::applicationFilePath())
+                                .completeBaseName()
+                                .contains(QStringLiteral("TvMode"), Qt::CaseInsensitive);
+
     switch (commandLineParserResult) {
     case GlobalCommandLineParser::NormalStartRequested:
-        initialView = StreamingPreferences::get()->tvMode ? "qrc:/gui/TvModeView.qml"
-                                                          : "qrc:/gui/PcView.qml";
+        initialView = (StreamingPreferences::get()->tvMode || launchedAsTvMode)
+                          ? "qrc:/gui/TvModeView.qml"
+                          : "qrc:/gui/PcView.qml";
         break;
     case GlobalCommandLineParser::StreamRequested:
         {
@@ -1045,6 +1054,7 @@ int main(int argc, char *argv[])
     if (hasGUI) {
         engine.rootContext()->setContextProperty("initialView", initialView);
         engine.rootContext()->setContextProperty("isGuiLaunch", commandLineParserResult == GlobalCommandLineParser::NormalStartRequested);
+        engine.rootContext()->setContextProperty("launchedAsTvMode", launchedAsTvMode);
 
         // Load the main.qml file
         engine.load(QUrl(QStringLiteral("qrc:/gui/main.qml")));

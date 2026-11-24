@@ -300,6 +300,10 @@ echo Copying application binary to deployment directory
 copy %BUILD_FOLDER%\app\%BUILD_CONFIG%\Moonlight.exe %DEPLOY_FOLDER%
 if !ERRORLEVEL! NEQ 0 goto Error
 
+rem MoonlightTvMode.exe is the same program; it opens in TV mode because of its name
+copy %BUILD_FOLDER%\app\%BUILD_CONFIG%\Moonlight.exe %DEPLOY_FOLDER%\MoonlightTvMode.exe
+if !ERRORLEVEL! NEQ 0 goto Error
+
 echo Building portable package
 rem This must be done after WiX harvesting and signing, since the VCRT dlls are MS signed
 rem and should not be harvested for inclusion in the full installer

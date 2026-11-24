@@ -76,15 +76,9 @@ Item {
 
     function runAction(key) {
         if (key === "settings") {
-            settingsButton.clicked()
+            stackView.push("qrc:/gui/TvSettingsView.qml")
         } else if (key === "desktop") {
-            StreamingPreferences.tvMode = false
-            StreamingPreferences.save()
-            if (StreamingPreferences.uiDisplayMode == StreamingPreferences.UI_MAXIMIZED)
-                window.showMaximized()
-            else if (StreamingPreferences.uiDisplayMode != StreamingPreferences.UI_FULLSCREEN)
-                window.showNormal()
-            stackView.replace(null, "qrc:/gui/PcView.qml")
+            window.exitTvMode()
         } else if (key === "exit") {
             quitConfirmationDialog.open()
         }
@@ -240,7 +234,7 @@ Item {
                     ListElement { key: "settings"; name: qsTr("Settings");       glyph: "S"
                                   desc: qsTr("Change video quality, frame rate, audio and controller options."); verb: qsTr("Open settings") }
                     ListElement { key: "desktop";  name: qsTr("Desktop mode");   glyph: "D"
-                                  desc: qsTr("Go back to the standard windowed interface. TV mode turns off."); verb: qsTr("Switch") }
+                                  desc: qsTr("Switch to the standard interface. To come back, use the TV button next to Settings."); verb: qsTr("Switch") }
                     ListElement { key: "exit";     name: qsTr("Exit Moonlight"); glyph: "X"
                                   desc: qsTr("Close Moonlight."); verb: qsTr("Exit") }
                 }

@@ -34,12 +34,13 @@ Rectangle {
             Row {
                 spacing: 14
                 Rectangle {
-                    width: 46; height: 46; radius: 23
+                    width: Math.max(46, buttonText.implicitWidth + 24); height: 46; radius: 23
                     anchors.verticalCenter: parent.verticalCenter
                     color: modelData.button === "A" ? bar.theme.moon : "transparent"
                     border.width: 2
                     border.color: modelData.button === "A" ? bar.theme.moon : bar.theme.text
                     Text {
+                        id: buttonText
                         anchors.centerIn: parent
                         text: modelData.button
                         color: modelData.button === "A" ? bar.theme.sky : bar.theme.text

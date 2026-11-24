@@ -37,7 +37,7 @@ ApplicationWindow {
     Component.onCompleted: {
         // Show the window according to the user's preferences
         // (TV mode always starts full screen)
-        if (isGuiLaunch && StreamingPreferences.tvMode) {
+        if (isGuiLaunch && (StreamingPreferences.tvMode || launchedAsTvMode)) {
             window.showFullScreen()
         }
         else if (SystemProperties.hasDesktopEnvironment) {
@@ -98,6 +98,29 @@ ApplicationWindow {
     // This configures the maximum width of the singleton attached QML ToolTip. If left unconstrained,
     // it will never insert a line break and just extend on forever.
     ToolTip.toolTip.contentWidth: Math.min(tooltipTextLayoutHelper.width, 400)
+
+    // Switch the whole UI into TV mode right now. This doesn't change the
+    // "Start in TV mode" setting, which only decides how Moonlight opens.
+    function enterTvMode() {
+        window.showFullScreen()
+        stackView.replace(null, "qrc:/gui/TvModeView.qml")
+    }
+
+    // Switch back to the standard interface, restoring the window the way
+    // the "GUI display mode" setting asks for.
+    function exitTvMode() {
+        if (StreamingPreferences.uiDisplayMode == StreamingPreferences.UI_MAXIMIZED) {
+            window.showMaximized()
+        }
+        else if (StreamingPreferences.uiDisplayMode == StreamingPreferences.UI_FULLSCREEN) {
+            window.showFullScreen()
+        }
+        else {
+            window.showNormal()
+        }
+        toolBar.visible = true
+        stackView.replace(null, "qrc:/gui/PcView.qml")
+    }
 
     function goBack() {
         if (clearOnBack) {
@@ -431,6 +454,23 @@ ApplicationWindow {
                 Keys.onDownPressed: {
                     stackView.currentItem.forceActiveFocus(Qt.TabFocus)
                 }
+            }
+
+            NavigableToolButton {
+                id: tvModeButton
+
+                iconSource: "qrc:/res/tv_mode.svg"
+
+                onClicked: enterTvMode()
+
+                Keys.onDownPressed: {
+                    stackView.currentItem.forceActiveFocus(Qt.TabFocus)
+                }
+
+                ToolTip.delay: 1000
+                ToolTip.timeout: 3000
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("Switch to TV mode")
             }
 
             NavigableToolButton {
