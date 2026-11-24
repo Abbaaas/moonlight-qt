@@ -135,15 +135,46 @@ FocusScope {
     }
 
     function quitThenStart(index, name) {
-        var component = Qt.createComponent("QuitSegue.qml")
-        stackView.push(component.createObject(stackView, {
-            "appName": runningName,
-            "quitRunningAppFn": function() { appModel.quitRunningApp() },
-            "nextAppName": name,
-            "nextSession": appModel.createSessionForApp(index),
-            "bigPicture": true,
-            "bigPictureError": root.showError
-        }))
+        quitApp({ index: index, name: name })
+    }
+
+    // ---- Quitting the app on the host -------------------------------------------------
+    // Done on this screen (with its own "Quitting…" overlay) rather than through
+    // the shared QuitSegue screen, so the desktop UI's quit screen is untouched.
+
+    property bool quitting: false
+    property string quittingName: ""
+    property var startAfterQuit: null
+
+    function quitApp(next) {
+        if (quitting || runningId === 0) return
+        quittingName = runningName
+        startAfterQuit = next || null
+        quitting = true
+        quitOverlay.forceActiveFocus()
+        ComputerManager.quitAppCompleted.connect(quitDone)
+        appModel.quitRunningApp()
+    }
+
+    function quitDone(error) {
+        ComputerManager.quitAppCompleted.disconnect(quitDone)
+        quitting = false
+        refreshRunning()
+        appGrid.forceActiveFocus()
+
+        if (error !== undefined) {
+            console.error(error)
+            showError(qsTr("Couldn't quit %1").arg(quittingName), error,
+                      "https://github.com/moonlight-stream/moonlight-docs/wiki/Troubleshooting")
+            return
+        }
+
+        var next = startAfterQuit
+        startAfterQuit = null
+        if (next) {
+            var item = appGrid.itemAtIndex(next.index)
+            if (item) launch(next.index, item)
+        }
     }
 
     // Stream and quit errors, in Big Picture's own controller dialog
@@ -175,16 +206,7 @@ FocusScope {
                        { label: qsTr("Cancel"), role: "cancel" } ],
             defaultRole: "cancel"
         }, function(role) {
-            if (role !== "quit") return
-            var component = Qt.createComponent("QuitSegue.qml")
-            stackView.push(component.createObject(stackView, {
-                "appName": root.runningName,
-                "quitRunningAppFn": function() { root.appModel.quitRunningApp() },
-                "nextAppName": null,
-                "nextSession": null,
-                "bigPicture": true,
-                "bigPictureError": root.showError
-            }))
+            if (role === "quit") root.quitApp(null)
         })
     }
 
@@ -207,7 +229,9 @@ FocusScope {
 
     // B goes back through main.qml's normal Escape handling (stackView.pop)
     Keys.onPressed: function(event) {
-        if (event.key === Qt.Key_Menu || event.key === Qt.Key_Delete) {
+        if (root.quitting) {
+            event.accepted = true
+        } else if (event.key === Qt.Key_Menu || event.key === Qt.Key_Delete) {
             // X / Square (or Del): quit the running app on the host
             event.accepted = true
             askToQuit()
@@ -451,6 +475,77 @@ FocusScope {
         BigPictureDialog {
             id: dialog
             theme: tvTheme
+        }
+
+        // "Quitting…" overlay while the host closes the app; swallows input
+        FocusScope {
+            id: quitOverlay
+            anchors.fill: parent
+            visible: root.quitting
+            z: 900
+
+            Keys.onPressed: function(event) { event.accepted = true }
+
+            BigPictureBackdrop { anchors.fill: parent; theme: tvTheme }
+            MouseArea { anchors.fill: parent; hoverEnabled: true }
+
+            Column {
+                anchors.centerIn: parent
+                spacing: 34
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: root.quittingName
+                    color: tvTheme.text
+                    font.pixelSize: 64
+                    font.weight: Font.Light
+                    font.letterSpacing: 2
+                }
+
+                Row {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: 20
+
+                    Item {
+                        width: 40
+                        height: 40
+                        anchors.verticalCenter: parent.verticalCenter
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: width / 2
+                            color: "transparent"
+                            border.width: 4
+                            border.color: tvTheme.panelBorder
+                        }
+                        Canvas {
+                            anchors.fill: parent
+                            onPaint: {
+                                var ctx = getContext("2d")
+                                ctx.reset()
+                                ctx.lineWidth = 4
+                                ctx.lineCap = "round"
+                                ctx.strokeStyle = tvTheme.moon
+                                ctx.beginPath()
+                                ctx.arc(width / 2, height / 2, width / 2 - 2, -Math.PI / 2, Math.PI / 6)
+                                ctx.stroke()
+                            }
+                            RotationAnimator on rotation {
+                                from: 0; to: 360
+                                duration: 1400
+                                loops: Animation.Infinite
+                                running: root.quitting
+                            }
+                        }
+                    }
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: qsTr("Quitting…")
+                        color: tvTheme.textMuted
+                        font.pixelSize: tvTheme.fontBody + 4
+                    }
+                }
+            }
         }
     }
 }
