@@ -36,7 +36,11 @@ ApplicationWindow {
 
     Component.onCompleted: {
         // Show the window according to the user's preferences
-        if (SystemProperties.hasDesktopEnvironment) {
+        // (TV mode always starts full screen)
+        if (isGuiLaunch && StreamingPreferences.tvMode) {
+            window.showFullScreen()
+        }
+        else if (SystemProperties.hasDesktopEnvironment) {
             if (StreamingPreferences.uiDisplayMode == StreamingPreferences.UI_MAXIMIZED) {
                 window.showMaximized()
             }

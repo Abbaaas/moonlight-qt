@@ -1305,6 +1305,22 @@ Flickable {
                     ToolTip.visible: hovered
                     ToolTip.text: qsTr("Prevents the screensaver from starting or the display from going to sleep while streaming.")
                 }
+
+                CheckBox {
+                    id: tvModeCheck
+                    width: parent.width
+                    text: qsTr("Start in TV mode (full screen, controller friendly)")
+                    font.pointSize: 12
+                    checked: StreamingPreferences.tvMode
+                    onCheckedChanged: {
+                        StreamingPreferences.tvMode = checked
+                    }
+
+                    ToolTip.delay: 1000
+                    ToolTip.timeout: 5000
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Opens Moonlight full screen with a menu you can use from the couch with a controller. Takes effect the next time Moonlight starts.")
+                }
             }
         }
     }

@@ -998,7 +998,8 @@ int main(int argc, char *argv[])
 
     switch (commandLineParserResult) {
     case GlobalCommandLineParser::NormalStartRequested:
-        initialView = "qrc:/gui/PcView.qml";
+        initialView = StreamingPreferences::get()->tvMode ? "qrc:/gui/TvModeView.qml"
+                                                          : "qrc:/gui/PcView.qml";
         break;
     case GlobalCommandLineParser::StreamRequested:
         {

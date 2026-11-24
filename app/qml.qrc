@@ -19,5 +19,13 @@
         <file>gui/NavigableDialog.qml</file>
         <file>gui/CenteredGridView.qml</file>
         <file>gui/CliPair.qml</file>
+        <file>gui/TvModeView.qml</file>
+        <file>gui/TvGamesView.qml</file>
+        <file>gui/TvMenuItem.qml</file>
+        <file>gui/TvPanel.qml</file>
+        <file>gui/TvHintBar.qml</file>
+        <file>gui/TvBackdrop.qml</file>
+        <file>gui/TvTheme.qml</file>
+        <file>gui/TvToast.qml</file>
     </qresource>
 </RCC>
