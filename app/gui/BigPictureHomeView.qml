@@ -25,7 +25,6 @@ FocusScope {
 
     // Round icon button for the top bar (an inline component, so it works when
     // this screen is loaded from the Documents\MoonlightBigPicture folder).
-    // Icons are drawn from plain shapes so they stay sharp at 1080p and 4K.
     component IconButton: Item {
         id: button
 
@@ -53,55 +52,40 @@ FocusScope {
             Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
             Behavior on color { ColorAnimation { duration: 120 } }
 
-            // Gear
-            Item {
-                visible: button.icon === "settings"
+            // Material Icons (Google, Apache License 2.0): settings,
+            // desktop_windows and logout, drawn from their SVG paths. Drawn at
+            // 4x and scaled down so they stay sharp at 1080p and 4K.
+            Canvas {
+                id: glyph
                 anchors.centerIn: parent
-                width: 38; height: 38
-                Repeater {
-                    model: 4
-                    Rectangle {
-                        anchors.centerIn: parent
-                        width: 9; height: 38; radius: 2
-                        rotation: index * 45
-                        color: button.ink
+                width: 160
+                height: 160
+                scale: 0.25
+
+                readonly property color ink: button.ink
+                readonly property string path: {
+                    switch (button.icon) {
+                    case "settings":
+                        return "M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"
+                    case "desktop":
+                        return "M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h7v2H8v2h8v-2h-3v-2h7c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H4V4h16v12z"
+                    default:
+                        return "M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"
                     }
                 }
-                Rectangle { anchors.centerIn: parent; width: 28; height: 28; radius: 14; color: button.ink }
-                Rectangle { anchors.centerIn: parent; width: 11; height: 11; radius: 5.5; color: button.fill }
-            }
 
-            // Monitor (switch to desktop)
-            Item {
-                visible: button.icon === "desktop"
-                anchors.centerIn: parent
-                width: 38; height: 34
-                Rectangle {
-                    width: 38; height: 26; radius: 4
-                    color: "transparent"
-                    border.width: 4
-                    border.color: button.ink
-                }
-                Rectangle { x: 16; y: 26; width: 6; height: 5; color: button.ink }
-                Rectangle { x: 9; y: 30; width: 20; height: 4; radius: 2; color: button.ink }
-            }
+                onInkChanged: requestPaint()
+                onPathChanged: requestPaint()
 
-            // Door with an arrow (exit)
-            Item {
-                visible: button.icon === "exit"
-                anchors.centerIn: parent
-                width: 40; height: 36
-                Rectangle {
-                    width: 24; height: 36; radius: 3
-                    color: "transparent"
-                    border.width: 4
-                    border.color: button.ink
+                onPaint: {
+                    var ctx = getContext("2d")
+                    ctx.reset()
+                    ctx.scale(width / 24, height / 24)
+                    ctx.fillStyle = ink
+                    ctx.fillRule = Qt.OddEvenFill
+                    ctx.path = path
+                    ctx.fill()
                 }
-                Rectangle { x: 15; y: 16; width: 5; height: 5; radius: 2.5; color: button.ink }
-                // Arrow pointing out of the door
-                Rectangle { x: 22; y: 16; width: 17; height: 4; radius: 2; color: button.ink }
-                Rectangle { x: 31; y: 12; width: 10; height: 4; radius: 2; rotation: 45; color: button.ink }
-                Rectangle { x: 31; y: 20; width: 10; height: 4; radius: 2; rotation: -45; color: button.ink }
             }
         }
 
