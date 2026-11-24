@@ -4,6 +4,7 @@ permissions:
   contents: read
 
 on:
+  workflow_dispatch:
   push:
   pull_request:
     branches:
@@ -25,18 +26,6 @@ jobs:
         run: |
           CI_VERSION=`echo ${GITHUB_SHA} | cut -c1-6`
           echo "ci_version=${CI_VERSION}" >> "${GITHUB_OUTPUT}"
-
-  build-appimage:
-    needs: setup
-    uses: ./.github/workflows/build-appimage.yml
-    with:
-      ci_version: ${{ needs.setup.outputs.ci_version }}
-
-  build-steamlink:
-    needs: setup
-    uses: ./.github/workflows/build-steamlink.yml
-    with:
-      ci_version: ${{ needs.setup.outputs.ci_version }}
 
   build-windows-macos:
     needs: setup
