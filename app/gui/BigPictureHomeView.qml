@@ -89,7 +89,7 @@ FocusScope {
 
     function placeInitialSelection() {
         if (hostList.count === 0) {
-            if (!actionList.activeFocus && !dialog.isOpen) actionList.forceActiveFocus()
+            if (!topBar.activeFocus && !dialog.isOpen) topBar.forceActiveFocus()
             return
         }
 
@@ -114,10 +114,10 @@ FocusScope {
             hostList.currentIndex = pick
         }
 
-        if (!dialog.isOpen && !hostList.activeFocus && !actionList.activeFocus) {
+        if (!dialog.isOpen && !hostList.activeFocus && !topBar.activeFocus) {
             hostList.forceActiveFocus()
-        } else if (actionList.activeFocus && !selectionSettled) {
-            // PCs showed up while only the actions were available
+        } else if (topBar.activeFocus && !selectionSettled) {
+            // PCs showed up while only the top buttons were available
             hostList.forceActiveFocus()
         }
     }
@@ -222,13 +222,11 @@ FocusScope {
     // Back on this screen: offer to leave
     function askToLeave() {
         BigPicture.playSound("back")
-        var buttons = [ { label: qsTr("Exit Moonlight"), role: "exit" } ]
-        if (!BigPicture.launchedDirectly) {
-            buttons.push({ label: qsTr("Return to Desktop Mode"), role: "desktop" })
-        }
+        var buttons = [ { label: qsTr("Exit Moonlight"), role: "exit" },
+                        { label: qsTr("Switch to Desktop"), role: "desktop" } ]
         buttons.push({ label: qsTr("Cancel"), role: "cancel" })
         dialog.show({
-            title: BigPicture.launchedDirectly ? qsTr("Exit Moonlight?") : qsTr("Leave Big Picture?"),
+            title: qsTr("Exit Moonlight?"),
             message: "",
             buttons: buttons,
             defaultRole: "cancel"
@@ -251,7 +249,7 @@ FocusScope {
         else placeInitialSelection()
     }
     StackView.onDeactivating: {
-        lastFocusedList = actionList.activeFocus ? actionList : hostList
+        lastFocusedList = topBar.activeFocus ? topBar : hostList
     }
 
     Component.onCompleted: Qt.callLater(placeInitialSelection)
@@ -295,14 +293,56 @@ FocusScope {
                 font.weight: Font.Light
                 font.letterSpacing: 3
             }
-            Text {
-                anchors.left: brand.right
-                anchors.leftMargin: 20
-                anchors.baseline: brand.baseline
-                text: qsTr("Big Picture")
-                color: tvTheme.moon
-                font.pixelSize: tvTheme.fontSmall + 4
+            // Settings, Switch to Desktop, Exit: icon buttons next to the clock
+            FocusScope {
+                id: topBar
+                anchors.right: clock.left
+                anchors.rightMargin: 40
+                anchors.verticalCenter: brand.verticalCenter
+                width: topRow.width
+                height: topRow.height
+
+                property int currentIndex: 0
+                readonly property var actions: [ { key: "settings", label: qsTr("Settings") },
+                                                 { key: "desktop",  label: qsTr("Switch to Desktop") },
+                                                 { key: "exit",     label: qsTr("Exit Moonlight") } ]
+
+                function move(delta) {
+                    var next = Math.max(0, Math.min(actions.length - 1, currentIndex + delta))
+                    if (next !== currentIndex) {
+                        currentIndex = next
+                        BigPicture.playSound("move")
+                    }
+                }
+
+                onActiveFocusChanged: if (activeFocus) BigPicture.playSound("move")
+
+                Keys.onLeftPressed:   move(-1)
+                Keys.onRightPressed:  move(1)
+                Keys.onDownPressed:   if (hostList.count > 0) hostList.forceActiveFocus()
+                Keys.onReturnPressed: root.runAction(actions[currentIndex].key)
+                Keys.onEnterPressed:  root.runAction(actions[currentIndex].key)
+                Keys.onSpacePressed:  root.runAction(actions[currentIndex].key)
+
+                Row {
+                    id: topRow
+                    spacing: 22
+
+                    Repeater {
+                        model: topBar.actions
+
+                        BigPictureIconButton {
+                            theme: tvTheme
+                            icon: modelData.key
+                            label: modelData.label
+                            current: topBar.activeFocus && index === topBar.currentIndex
+                            onHovered: { topBar.currentIndex = index; topBar.forceActiveFocus() }
+                            onActivated: root.runAction(modelData.key)
+                        }
+                    }
+                }
             }
+
             Text {
                 id: clock
                 anchors.right: parent.right
@@ -327,10 +367,10 @@ FocusScope {
             ListView {
                 id: hostList
                 anchors.top: pcLabel.bottom
-                anchors.topMargin: 24
+                anchors.topMargin: 30
                 anchors.left: parent.left
                 anchors.right: parent.right
-                height: 400
+                height: 590
                 orientation: ListView.Horizontal
                 spacing: 40
                 leftMargin: 14
@@ -345,7 +385,7 @@ FocusScope {
                 preferredHighlightEnd: width * 0.7
                 model: root.computerModel
 
-                KeyNavigation.down: actionList
+                KeyNavigation.up: topBar
 
                 onCurrentIndexChanged: {
                     if (currentItem) root.selectedUuid = currentItem.uuid
@@ -369,10 +409,10 @@ FocusScope {
                     readonly property bool current: ListView.isCurrentItem && hostList.activeFocus
                     readonly property bool usable: hostStatus === "ready" || hostStatus === "asleep" || hostStatus === "unpaired"
 
-                    width: 340
-                    height: 372
+                    width: 440
+                    height: 540
                     z: current ? 2 : 1
-                    scale: current ? 1.06 : 1.0
+                    scale: current ? 1.05 : 1.0
                     Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
 
                     // Glow behind the focused tile
@@ -397,33 +437,33 @@ FocusScope {
                         Item {
                             id: monitor
                             anchors.horizontalCenter: parent.horizontalCenter
-                            y: 54
-                            width: 170
-                            height: 140
+                            y: 90
+                            width: 230
+                            height: 190
                             opacity: tile.usable ? 1 : 0.45
                             Rectangle {
-                                width: parent.width; height: 110; radius: 12
+                                width: parent.width; height: 150; radius: 14
                                 color: "transparent"
-                                border.width: 6
+                                border.width: 7
                                 border.color: tile.current ? tvTheme.moon : tvTheme.cool
                                 Text {
                                     anchors.centerIn: parent
                                     text: tile.name.length > 0 ? tile.name.charAt(0).toUpperCase() : "?"
                                     color: tile.current ? tvTheme.moon : tvTheme.text
-                                    font.pixelSize: 52
+                                    font.pixelSize: 72
                                     font.weight: Font.Light
                                 }
                             }
-                            Rectangle { x: parent.width / 2 - 8; y: 110; width: 16; height: 18; color: tile.current ? tvTheme.moon : tvTheme.cool }
-                            Rectangle { x: parent.width / 2 - 44; y: 126; width: 88; height: 8; radius: 4; color: tile.current ? tvTheme.moon : tvTheme.cool }
+                            Rectangle { x: parent.width / 2 - 10; y: 150; width: 20; height: 24; color: tile.current ? tvTheme.moon : tvTheme.cool }
+                            Rectangle { x: parent.width / 2 - 58; y: 172; width: 116; height: 10; radius: 5; color: tile.current ? tvTheme.moon : tvTheme.cool }
                         }
 
                         Column {
                             anchors.left: parent.left
                             anchors.right: parent.right
                             anchors.bottom: parent.bottom
-                            anchors.margins: 26
-                            spacing: 8
+                            anchors.margins: 40
+                            spacing: 12
 
                             Text {
                                 width: parent.width
@@ -431,7 +471,7 @@ FocusScope {
                                 elide: Text.ElideRight
                                 horizontalAlignment: Text.AlignHCenter
                                 color: tvTheme.text
-                                font.pixelSize: tvTheme.fontBody + 4
+                                font.pixelSize: tvTheme.fontBody + 10
                                 font.weight: Font.DemiBold
                             }
                             Row {
@@ -447,7 +487,7 @@ FocusScope {
                                 Text {
                                     text: root.statusText(tile.hostStatus)
                                     color: tvTheme.textMuted
-                                    font.pixelSize: tvTheme.fontSmall
+                                    font.pixelSize: tvTheme.fontSmall + 4
                                 }
                             }
                         }
@@ -490,100 +530,29 @@ FocusScope {
                 Text {
                     width: parent.width
                     wrapMode: Text.WordWrap
-                    text: qsTr("Turn on your gaming PC and start its streaming host. It shows up here automatically. To add a PC by IP address, use Return to Desktop Mode, then the + button.")
+                    text: qsTr("Turn on your gaming PC and start its streaming host. It shows up here automatically. To add a PC by IP address, use Switch to Desktop (top right), then the + button.")
                     color: tvTheme.textMuted
                     font.pixelSize: tvTheme.fontBody
                     lineHeight: 1.3
                 }
             }
 
-            // ---- Actions ----
-            ListView {
-                id: actionList
-                anchors.top: hostList.bottom
-                anchors.topMargin: 48
-                anchors.left: parent.left
-                anchors.leftMargin: 14
-                anchors.right: parent.right
-                height: 84
-                orientation: ListView.Horizontal
-                spacing: 22
-                interactive: false
-                keyNavigationEnabled: true
-
-                KeyNavigation.up: hostList.count > 0 ? hostList : null
-
-                model: {
-                    var m = [ { key: "settings", label: qsTr("Settings") } ]
-                    if (!BigPicture.launchedDirectly) m.push({ key: "desktop", label: qsTr("Return to Desktop Mode") })
-                    m.push({ key: "exit", label: qsTr("Exit") })
-                    return m
-                }
-
-                onCurrentIndexChanged: if (activeFocus) BigPicture.playSound("move")
-                onActiveFocusChanged: if (activeFocus) BigPicture.playSound("move")
-
-                Keys.onReturnPressed: root.runAction(model[currentIndex].key)
-                Keys.onEnterPressed:  root.runAction(model[currentIndex].key)
-                Keys.onSpacePressed:  root.runAction(model[currentIndex].key)
-
-                delegate: Rectangle {
-                    readonly property bool current: ListView.isCurrentItem && actionList.activeFocus
-                    width: actionText.implicitWidth + 80
-                    height: 80
-                    radius: 40
-                    color: current ? tvTheme.moon : Qt.rgba(0.08, 0.11, 0.21, 0.78)
-                    border.width: current ? 0 : 1
-                    border.color: tvTheme.panelBorder
-                    Behavior on color { ColorAnimation { duration: 120 } }
-
-                    Text {
-                        id: actionText
-                        anchors.centerIn: parent
-                        text: modelData.label
-                        color: parent.current ? tvTheme.sky : tvTheme.text
-                        font.pixelSize: tvTheme.fontBody
-                        font.weight: Font.DemiBold
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onPositionChanged: function(mouse) {
-                            if (BigPicture.inputMode === "keyboard" && tvTheme.pointerMoved(parent, mouse.x, mouse.y)) {
-                                actionList.currentIndex = index
-                                actionList.forceActiveFocus()
-                            }
-                        }
-                        onClicked: root.runAction(modelData.key)
-                    }
-                }
-            }
-
-            // ---- Bottom prompt bar ----
+            // ---- Button prompts, bottom right ----
             BigPictureHintBar {
                 id: hints
                 theme: tvTheme
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                leftText: {
-                    var base = hostList.activeFocus && hostList.currentItem ? root.stateHelp(hostList.currentItem.hostStatus) : ""
-                    if (bigPictureFilesFolder !== "")
-                        base += (base ? "    " : "") + qsTr("Using Big Picture files from %1").arg(bigPictureFilesFolder)
-                    return base
-                }
                 hints: {
                     var h = []
                     if (hostList.activeFocus && hostList.currentItem) {
                         var label = root.confirmLabel(hostList.currentItem.hostStatus)
                         if (label !== "") h.push({ action: "confirm", label: label })
-                    } else if (actionList.activeFocus) {
-                        h.push({ action: "confirm", label: qsTr("Select") })
+                    } else if (topBar.activeFocus) {
+                        h.push({ action: "confirm", label: topBar.actions[topBar.currentIndex].label })
                     }
-                    h.push({ action: "settings", label: qsTr("Settings") })
-                    h.push({ action: "back", label: BigPicture.launchedDirectly ? qsTr("Exit") : qsTr("Leave") })
+                    h.push({ action: "back", label: qsTr("Exit") })
                     return h
                 }
             }

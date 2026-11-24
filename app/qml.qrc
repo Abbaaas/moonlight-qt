@@ -30,5 +30,6 @@
         <file>gui/BigPictureToast.qml</file>
         <file>gui/BigPictureGlyph.qml</file>
         <file>gui/BigPictureDialog.qml</file>
+        <file>gui/BigPictureIconButton.qml</file>
     </qresource>
 </RCC>

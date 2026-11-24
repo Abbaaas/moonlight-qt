@@ -201,24 +201,6 @@ FocusScope {
                     }
                 }
             }
-
-            // Prompts, following the device in use
-            Row {
-                anchors.right: parent.right
-                spacing: 32
-                Row {
-                    spacing: 10
-                    visible: dialog.buttons.length > 0
-                    BigPictureGlyph { theme: dialog.theme; action: "confirm"; anchors.verticalCenter: parent.verticalCenter }
-                    Text { text: qsTr("Select"); color: dialog.theme.text; font.pixelSize: dialog.theme.fontSmall; anchors.verticalCenter: parent.verticalCenter }
-                }
-                Row {
-                    spacing: 10
-                    visible: dialog.cancelRole !== ""
-                    BigPictureGlyph { theme: dialog.theme; action: "back"; anchors.verticalCenter: parent.verticalCenter }
-                    Text { text: qsTr("Cancel"); color: dialog.theme.text; font.pixelSize: dialog.theme.fontSmall; anchors.verticalCenter: parent.verticalCenter }
-                }
-            }
         }
     }
 }

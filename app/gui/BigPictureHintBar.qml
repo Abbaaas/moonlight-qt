@@ -1,25 +1,22 @@
-// Glass prompt bar along the bottom: a description on the left and button
-// prompts on the right. Prompts follow the device in use (BigPictureGlyph).
+// Button prompts along the bottom right (no panel behind them), with an
+// optional line of text on the left. Prompts follow the device in use
+// (BigPictureGlyph).
 import QtQuick
 
-Rectangle {
+Item {
     id: bar
     property BigPictureTheme theme: BigPictureTheme {}
     property string leftText: ""
     // Each hint: { action: "confirm" | "back" | "quit" | "settings" | "change", label: "..." }
     property var hints: []
 
-    height: 84
-    radius: 18
-    color: theme.panel
-    border.width: 1
-    border.color: theme.panelBorder
+    height: 70
 
     Text {
         anchors.left: parent.left
-        anchors.leftMargin: 32
+        anchors.leftMargin: 8
         anchors.verticalCenter: parent.verticalCenter
-        width: parent.width - hintRow.width - 96
+        width: parent.width - hintRow.width - 64
         wrapMode: Text.WordWrap
         maximumLineCount: 2
         elide: Text.ElideRight
@@ -31,7 +28,7 @@ Rectangle {
     Row {
         id: hintRow
         anchors.right: parent.right
-        anchors.rightMargin: 32
+        anchors.rightMargin: 8
         anchors.verticalCenter: parent.verticalCenter
         spacing: 36
 

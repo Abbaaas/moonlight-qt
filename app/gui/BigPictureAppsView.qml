@@ -406,7 +406,6 @@ FocusScope {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                leftText: appGrid.currentItem ? appGrid.currentItem.name : ""
                 hints: {
                     var h = []
                     if (appGrid.currentItem) {
