@@ -210,6 +210,14 @@ void SdlGamepadKeyNavigation::onPollingTimerFired()
             case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
                 sendKey(type, Qt::Key_Right);
                 break;
+            // LB / L1 and RB / R1 page between sections (Big Picture settings
+            // uses them to jump between its two columns)
+            case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
+                sendKey(type, Qt::Key_PageUp);
+                break;
+            case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
+                sendKey(type, Qt::Key_PageDown);
+                break;
             case SDL_CONTROLLER_BUTTON_A:
                 if (m_UiNavMode) {
                     sendKey(type, Qt::Key_Space);

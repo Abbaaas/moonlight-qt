@@ -145,6 +145,26 @@ FocusScope {
         revision++
     }
 
+    // Last selected setting in each column, so jumping back lands where you were
+    property int lastLeftIndex: 0
+    property int lastRightIndex: -1
+
+    onCurrentIndexChanged: {
+        if (currentIndex < columnSplit) lastLeftIndex = currentIndex
+        else lastRightIndex = currentIndex
+    }
+
+    // LB / L1 (Page Up) and RB / R1 (Page Down): jump between the two columns
+    function jumpToColumn(right) {
+        if (right) {
+            if (currentIndex >= columnSplit || columnSplit >= flatRows.length) return
+            select(lastRightIndex >= columnSplit ? lastRightIndex : columnSplit)
+        } else {
+            if (currentIndex < columnSplit) return
+            select(lastLeftIndex < columnSplit ? lastLeftIndex : 0)
+        }
+    }
+
     function select(gi) {
         if (gi < 0 || gi >= flatRows.length || gi === currentIndex) return
         currentIndex = gi
@@ -534,9 +554,12 @@ FocusScope {
 
     Component.onDestruction: StreamingPreferences.save()
 
-    // Start / Y and X / Square do nothing here (and must not open the desktop page)
+    // LB / RB (Page Up / Page Down) jump between the two columns.
+    // Start / Y and X / Square do nothing here (and must not open the desktop page).
     Keys.onPressed: function(event) {
-        if (event.key === Qt.Key_Hangup || event.key === Qt.Key_Menu) event.accepted = true
+        if (event.key === Qt.Key_PageUp) { event.accepted = true; jumpToColumn(false) }
+        else if (event.key === Qt.Key_PageDown) { event.accepted = true; jumpToColumn(true) }
+        else if (event.key === Qt.Key_Hangup || event.key === Qt.Key_Menu) event.accepted = true
     }
 
     Keys.onUpPressed:     select(currentIndex - 1)
