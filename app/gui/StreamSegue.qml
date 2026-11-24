@@ -1,10 +1,11 @@
-import QtQuick 2.0
+import QtQuick
 import QtQuick.Controls 2.2
 import QtQuick.Window 2.2
 
 import SdlGamepadKeyNavigation 1.0
 import Session 1.0
 import SystemProperties 1.0
+import BigPicture 1.0
 
 Item {
     property Session session
@@ -14,10 +15,18 @@ Item {
     property bool isResume : false
     property bool quitAfter : false
 
+    // Set when launched from Big Picture: this screen then uses the Big
+    // Picture look, and errors go to bigPictureError(title, text, helpUrl)
+    // (shown in Big Picture's own dialog) instead of the desktop dialog.
+    property bool bigPicture : false
+    property var bigPictureError : null
+    property string bigPictureStatus : isResume ? qsTr("Resuming…") : qsTr("Starting…")
+
     function stageStarting(stage)
     {
         // Update the spinner text
         stageText = qsTr("Starting %1...").arg(stage)
+        bigPictureStatus = qsTr("Starting %1…").arg(stage)
     }
 
     function stageFailed(stage, errorCode, failingPorts)
@@ -53,7 +62,9 @@ Item {
     {
         // Avoid the push transition animation
         var component = Qt.createComponent("QuitSegue.qml")
-        stackView.replace(stackView.currentItem, component.createObject(stackView, {"appName": appName}), StackView.Immediate)
+        stackView.replace(stackView.currentItem, component.createObject(stackView, {"appName": appName,
+                                                                                    "bigPicture": bigPicture,
+                                                                                    "bigPictureError": bigPictureError}), StackView.Immediate)
 
         // Show the Qt window again to show quit segue
         window.visible = true
@@ -85,7 +96,13 @@ Item {
             // the Qt UI is visible again to prevent losing
             // focus on the dialog which would impact gamepad
             // users.
-            if (streamSegueErrorDialog.text) {
+            if (streamSegueErrorDialog.text && bigPicture && bigPictureError) {
+                // Big Picture shows the error in its own controller dialog
+                var errorText = streamSegueErrorDialog.text
+                streamSegueErrorDialog.text = ""
+                bigPictureError(qsTr("Couldn't stream %1").arg(appName), errorText, streamSegueErrorDialog.helpUrl)
+            }
+            else if (streamSegueErrorDialog.text) {
                 streamSegueErrorDialog.quitAfter = quitAfter
                 streamSegueErrorDialog.open()
             }
@@ -155,6 +172,17 @@ Item {
             hintText.text = qsTr("Tip:") + " " + qsTr("Press %1 to disconnect your session").arg(SdlGamepadKeyNavigation.getConnectedGamepads() > 0 ?
                                                   qsTr("Start+Select+L1+R1") : qsTr("Ctrl+Alt+Shift+Q"))
 
+            // Same tip in the Big Picture look, named for the controller in use
+            if (SdlGamepadKeyNavigation.getConnectedGamepads() > 0) {
+                bigPictureHint.text = BigPicture.glyphs === "playstation"
+                        ? qsTr("To disconnect, press Options + Create + L1 + R1")
+                        : BigPicture.glyphs === "xbox"
+                          ? qsTr("To disconnect, press Menu + View + LB + RB")
+                          : qsTr("To disconnect, press Start + Select + L1 + R1")
+            } else {
+                bigPictureHint.text = qsTr("To disconnect, press Ctrl + Alt + Shift + Q")
+            }
+
             // Stop GUI gamepad usage now
             SdlGamepadKeyNavigation.disable()
 
@@ -200,13 +228,113 @@ Item {
         sourceComponent: Item {}
     }
 
+    // ---- Big Picture look ----
+    BigPictureTheme { id: bpTheme }
+
+    BigPictureBackdrop {
+        anchors.fill: parent
+        theme: bpTheme
+        visible: bigPicture
+    }
+
+    Item {
+        id: bpStage
+        visible: bigPicture
+        readonly property real k: bpTheme.stageScale(parent.width, parent.height)
+        width: parent.width / k
+        height: parent.height / k
+        scale: k
+        transformOrigin: Item.TopLeft
+
+        Column {
+            anchors.centerIn: parent
+            spacing: 34
+            // Hidden together with the desktop label once the stream starts
+            visible: stageLabel.visible
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: Math.min(implicitWidth, bpStage.width * 0.8)
+                horizontalAlignment: Text.AlignHCenter
+                elide: Text.ElideRight
+                text: appName
+                color: bpTheme.text
+                font.pixelSize: 64
+                font.weight: Font.Light
+                font.letterSpacing: 2
+            }
+
+            Row {
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: 20
+
+                // A calm ring spinner; shown at the same moment as the desktop
+                // one (after session.initialize()), for the same reason.
+                Item {
+                    width: 40
+                    height: 40
+                    anchors.verticalCenter: parent.verticalCenter
+                    opacity: stageSpinner.visible ? 1 : 0
+                    Behavior on opacity { NumberAnimation { duration: 200 } }
+
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: width / 2
+                        color: "transparent"
+                        border.width: 4
+                        border.color: bpTheme.panelBorder
+                    }
+                    Canvas {
+                        id: bpArc
+                        anchors.fill: parent
+                        onPaint: {
+                            var ctx = getContext("2d")
+                            ctx.reset()
+                            ctx.lineWidth = 4
+                            ctx.lineCap = "round"
+                            ctx.strokeStyle = bpTheme.moon
+                            ctx.beginPath()
+                            ctx.arc(width / 2, height / 2, width / 2 - 2, -Math.PI / 2, Math.PI / 6)
+                            ctx.stroke()
+                        }
+                        RotationAnimator on rotation {
+                            from: 0; to: 360
+                            duration: 1400
+                            loops: Animation.Infinite
+                            running: bigPicture && stageSpinner.visible
+                        }
+                    }
+                }
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: bigPictureStatus
+                    color: bpTheme.textMuted
+                    font.pixelSize: bpTheme.fontBody + 4
+                }
+            }
+        }
+
+        Text {
+            id: bigPictureHint
+            visible: stageLabel.visible
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 80
+            color: bpTheme.textMuted
+            font.pixelSize: bpTheme.fontSmall + 2
+        }
+    }
+
+    // ---- Desktop look ----
     Row {
         anchors.centerIn: parent
         spacing: 5
+        opacity: bigPicture ? 0 : 1
 
         BusyIndicator {
             id: stageSpinner
-            running: visible
+            running: visible && !bigPicture
             visible: false
         }
 
@@ -223,6 +351,7 @@ Item {
 
     Label {
         id: hintText
+        opacity: bigPicture ? 0 : 1
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 50
         anchors.horizontalCenter: parent.horizontalCenter

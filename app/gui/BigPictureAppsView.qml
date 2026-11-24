@@ -128,7 +128,9 @@ FocusScope {
         stackView.push(component.createObject(stackView, {
             "appName": item.name,
             "session": appModel.createSessionForApp(index),
-            "isResume": runningId === item.appId
+            "isResume": runningId === item.appId,
+            "bigPicture": true,
+            "bigPictureError": root.showError
         }))
     }
 
@@ -138,8 +140,24 @@ FocusScope {
             "appName": runningName,
             "quitRunningAppFn": function() { appModel.quitRunningApp() },
             "nextAppName": name,
-            "nextSession": appModel.createSessionForApp(index)
+            "nextSession": appModel.createSessionForApp(index),
+            "bigPicture": true,
+            "bigPictureError": root.showError
         }))
+    }
+
+    // Stream and quit errors, in Big Picture's own controller dialog
+    function showError(title, text, helpUrl) {
+        BigPicture.playSound("error")
+        dialog.show({
+            title: title,
+            message: text,
+            buttons: [ { label: qsTr("OK"), role: "ok" },
+                       { label: qsTr("Help"), role: "help" } ],
+            cancelRole: "ok"
+        }, function(role) {
+            if (role === "help" && helpUrl) Qt.openUrlExternally(helpUrl)
+        })
     }
 
     function askToQuit() {
@@ -163,7 +181,9 @@ FocusScope {
                 "appName": root.runningName,
                 "quitRunningAppFn": function() { root.appModel.quitRunningApp() },
                 "nextAppName": null,
-                "nextSession": null
+                "nextSession": null,
+                "bigPicture": true,
+                "bigPictureError": root.showError
             }))
         })
     }
