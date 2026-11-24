@@ -1,4 +1,4 @@
-// Shared colors and sizes for TV mode.
+// Shared colors and sizes for Big Picture.
 import QtQuick
 
 QtObject {
@@ -42,6 +42,10 @@ QtObject {
         lastPointer = p
         return true
     }
+
+    // Screens are laid out at 1920x1080 and scaled to fit, so text and tiles
+    // stay the same size on the TV at 1080p and at 4K.
+    function stageScale(w, h) { return Math.max(0.5, Math.min(w / 1920, h / 1080)) }
 
     // TV safe area, about 5% of each edge.
     function safeX(w) { return Math.round(w * 0.05) }

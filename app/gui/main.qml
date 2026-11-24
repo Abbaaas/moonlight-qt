@@ -9,6 +9,7 @@ import AutoUpdateChecker 1.0
 import StreamingPreferences 1.0
 import SystemProperties 1.0
 import SdlGamepadKeyNavigation 1.0
+import BigPicture 1.0
 
 ApplicationWindow {
     property bool pollingActive: false
@@ -35,10 +36,17 @@ ApplicationWindow {
     }
 
     Component.onCompleted: {
-        // Show the window according to the user's preferences
-        // (TV mode always starts full screen)
-        if (isGuiLaunch && (StreamingPreferences.tvMode || launchedAsTvMode)) {
+        // Show the window according to the user's preferences. Big Picture
+        // (Moonlight.BigPicture.exe, or the "Open Moonlight.exe in Big Picture"
+        // setting) always starts full screen with no desktop toolbar; its
+        // first screen was already chosen in main.cpp, so the desktop UI never
+        // shows. This is only the menu window; it doesn't touch any stream
+        // display setting.
+        if (startInBigPicture) {
+            toolBar.visible = false
             window.showFullScreen()
+            window.raise()
+            window.requestActivate()
         }
         else if (SystemProperties.hasDesktopEnvironment) {
             if (StreamingPreferences.uiDisplayMode == StreamingPreferences.UI_MAXIMIZED) {
@@ -99,16 +107,26 @@ ApplicationWindow {
     // it will never insert a line break and just extend on forever.
     ToolTip.toolTip.contentWidth: Math.min(tooltipTextLayoutHelper.width, 400)
 
-    // Switch the whole UI into TV mode right now. This doesn't change the
-    // "Start in TV mode" setting, which only decides how Moonlight opens.
-    function enterTvMode() {
-        window.showFullScreen()
-        stackView.replace(null, "qrc:/gui/TvModeView.qml")
+    // Switch this window into Big Picture (the desktop toolbar's Big Picture
+    // button). Doesn't change any setting.
+    function enterBigPicture() {
+        toolBar.visible = false
+        stackView.replace(null, "qrc:/gui/BigPictureHomeView.qml")
+        ensureBigPictureWindow()
     }
 
-    // Switch back to the standard interface, restoring the window the way
-    // the "GUI display mode" setting asks for.
-    function exitTvMode() {
+    // Big Picture screens call this when shown: full screen and focused, so
+    // the first controller press works without clicking the window.
+    function ensureBigPictureWindow() {
+        if (window.visibility !== Window.FullScreen) {
+            window.showFullScreen()
+        }
+        window.requestActivate()
+    }
+
+    // "Return to Desktop Mode": back to the standard interface, restoring
+    // the window the way the "GUI display mode" setting asks for.
+    function exitBigPicture() {
         if (StreamingPreferences.uiDisplayMode == StreamingPreferences.UI_MAXIMIZED) {
             window.showMaximized()
         }
@@ -150,6 +168,11 @@ ApplicationWindow {
             if (currentItem) {
                 currentItem.forceActiveFocus()
             }
+
+            // Big Picture's cursor hiding and device-following prompts apply
+            // only while one of its own screens is showing (not while
+            // streaming, and not on desktop pages).
+            BigPicture.active = !!(currentItem && currentItem.isBigPicture === true)
         }
 
         Keys.onEscapePressed: {
@@ -457,11 +480,11 @@ ApplicationWindow {
             }
 
             NavigableToolButton {
-                id: tvModeButton
+                id: bigPictureButton
 
-                iconSource: "qrc:/res/tv_mode.svg"
+                iconSource: "qrc:/res/big_picture.svg"
 
-                onClicked: enterTvMode()
+                onClicked: enterBigPicture()
 
                 Keys.onDownPressed: {
                     stackView.currentItem.forceActiveFocus(Qt.TabFocus)
@@ -470,7 +493,7 @@ ApplicationWindow {
                 ToolTip.delay: 1000
                 ToolTip.timeout: 3000
                 ToolTip.visible: hovered
-                ToolTip.text: qsTr("Switch to TV mode")
+                ToolTip.text: qsTr("Big Picture")
             }
 
             NavigableToolButton {

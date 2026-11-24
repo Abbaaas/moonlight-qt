@@ -1,7 +1,7 @@
 // One line of the launcher menu: large text, a lunar bar and soft highlight when selected.
 import QtQuick
 
-import TvSound 1.0
+import BigPicture 1.0
 
 Item {
     id: item
@@ -11,12 +11,12 @@ Item {
     property bool current: false
     property bool dimmed: false
     property color barColor: theme.moon
-    property TvTheme theme: TvTheme {}
+    property BigPictureTheme theme: BigPictureTheme {}
 
     signal activated()
     signal hovered()
 
-    onCurrentChanged: if (current) TvSound.play("move")
+    onCurrentChanged: if (current) BigPicture.playSound("move")
 
     width: ListView.view ? ListView.view.width : 520
     height: detail !== "" ? 104 : 80
@@ -73,8 +73,11 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
+        // Only a mouse that's really being used selects; a hidden cursor
+        // resting over an item while the controller scrolls never does.
         onPositionChanged: function(mouse) {
-            if (item.theme.pointerMoved(item, mouse.x, mouse.y)) item.hovered()
+            if (item.theme.pointerMoved(item, mouse.x, mouse.y) && BigPicture.inputMode === "keyboard")
+                item.hovered()
         }
         onClicked: item.activated()
     }

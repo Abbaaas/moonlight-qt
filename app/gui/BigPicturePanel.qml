@@ -2,7 +2,7 @@
 import QtQuick
 
 Rectangle {
-    property TvTheme theme: TvTheme {}
+    property BigPictureTheme theme: BigPictureTheme {}
     radius: 22
     color: theme.panel
     border.width: 1

@@ -1,11 +1,12 @@
-// Glass prompt bar along the bottom with controller button hints.
+// Glass prompt bar along the bottom: a description on the left and button
+// prompts on the right. Prompts follow the device in use (BigPictureGlyph).
 import QtQuick
 
 Rectangle {
     id: bar
-    property TvTheme theme: TvTheme {}
+    property BigPictureTheme theme: BigPictureTheme {}
     property string leftText: ""
-    // Each hint: { button: "A", label: "Select" }
+    // Each hint: { action: "confirm" | "back" | "quit" | "settings" | "change", label: "..." }
     property var hints: []
 
     height: 84
@@ -32,26 +33,18 @@ Rectangle {
         anchors.right: parent.right
         anchors.rightMargin: 32
         anchors.verticalCenter: parent.verticalCenter
-        spacing: 40
+        spacing: 36
 
         Repeater {
             model: bar.hints
             Row {
-                spacing: 14
-                Rectangle {
-                    width: Math.max(46, buttonText.implicitWidth + 24); height: 46; radius: 23
+                spacing: 12
+                visible: glyph.available
+                BigPictureGlyph {
+                    id: glyph
+                    theme: bar.theme
+                    action: modelData.action
                     anchors.verticalCenter: parent.verticalCenter
-                    color: modelData.button === "A" ? bar.theme.moon : "transparent"
-                    border.width: 2
-                    border.color: modelData.button === "A" ? bar.theme.moon : bar.theme.text
-                    Text {
-                        id: buttonText
-                        anchors.centerIn: parent
-                        text: modelData.button
-                        color: modelData.button === "A" ? bar.theme.sky : bar.theme.text
-                        font.pixelSize: 22
-                        font.weight: Font.Bold
-                    }
                 }
                 Text {
                     anchors.verticalCenter: parent.verticalCenter

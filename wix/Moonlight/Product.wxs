@@ -38,10 +38,10 @@
                 Target="[#MoonlightExe]"
                 Directory="ApplicationProgramsFolder"
                 WorkingDirectory="INSTALLFOLDER" />
-      <Shortcut Id="TvModeStartMenuShortcut"
-                Name="$(var.ShortcutName) TV Mode"
-                Description="Open Moonlight full screen in TV mode"
-                Target="[#MoonlightTvModeExe]"
+      <Shortcut Id="BigPictureStartMenuShortcut"
+                Name="$(var.ShortcutName) Big Picture"
+                Description="Open Moonlight full screen in Big Picture mode"
+                Target="[#MoonlightBigPictureExe]"
                 Directory="ApplicationProgramsFolder"
                 WorkingDirectory="INSTALLFOLDER" />
       <RemoveFolder Id="CleanupStartMenuShortcut"
@@ -101,17 +101,17 @@
         </File>
       </Component>
       <!-- Same program as Moonlight.exe. Started under this name it always
-           opens in TV mode (see main.cpp). -->
-      <Component Id="MoonlightTvMode">
-        <File Id="MoonlightTvModeExe"
-              Name="MoonlightTvMode.exe"
+           opens in Big Picture (see BigPicture::isBigPictureExecutable). -->
+      <Component Id="MoonlightBigPicture">
+        <File Id="MoonlightBigPictureExe"
+              Name="Moonlight.BigPicture.exe"
               KeyPath="yes"
               Checksum="yes"
               Source="$(var.BuildDir)\app\$(var.Configuration)\Moonlight.exe">
-          <fire:FirewallException Id="MoonlightTvModeFirewallException"
+          <fire:FirewallException Id="MoonlightBigPictureFirewallException"
                                   Scope="any"
                                   IgnoreFailure="yes"
-                                  Name="$(var.FullName) (TV Mode)" />
+                                  Name="$(var.FullName) (Big Picture)" />
         </File>
       </Component>
     </DirectoryRef>
@@ -122,7 +122,7 @@
 
     <Feature Id="ProductFeature" Title="Moonlight" Level="1" ConfigurableDirectory="INSTALLFOLDER">
       <ComponentRef Id="Moonlight" />
-      <ComponentRef Id="MoonlightTvMode" />
+      <ComponentRef Id="MoonlightBigPicture" />
       <ComponentRef Id="MoonlightShortcuts" />
       <ComponentRef Id="MoonlightDesktopShortcutState" />
       <ComponentRef Id="MoonlightDesktopShortcut" />

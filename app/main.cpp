@@ -55,7 +55,7 @@
 #include "backend/systemproperties.h"
 #include "streaming/session.h"
 #include "settings/streamingpreferences.h"
-#include "gui/tvsupport.h"
+#include "gui/bigpicture.h"
 #include "gui/sdlgamepadkeynavigation.h"
 
 #if defined(Q_OS_WIN32)
@@ -438,6 +438,25 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationName("Moonlight Game Streaming Project");
     QCoreApplication::setOrganizationDomain("moonlight-stream.com");
     QCoreApplication::setApplicationName("Moonlight");
+
+#ifdef Q_OS_WIN32
+    {
+        // Portable mode is detected from the working directory. A launcher
+        // like Playnite may start Moonlight.exe or Moonlight.BigPicture.exe
+        // from a different one, which would make it read different settings
+        // and pairing data. If portable.dat sits next to the executable, use
+        // that folder instead.
+        wchar_t exePath[MAX_PATH * 2];
+        DWORD len = GetModuleFileNameW(nullptr, exePath, (DWORD)(sizeof(exePath) / sizeof(exePath[0])));
+        if (len > 0 && len < sizeof(exePath) / sizeof(exePath[0])) {
+            QString exeDir = QFileInfo(QString::fromWCharArray(exePath, (int)len)).absolutePath();
+            if (QFile(exeDir + "/portable.dat").exists() &&
+                    !QFile(QDir::currentPath() + "/portable.dat").exists()) {
+                QDir::setCurrent(exeDir);
+            }
+        }
+    }
+#endif
 
     if (QFile(QDir::currentPath() + "/portable.dat").exists()) {
         QSettings::setDefaultFormat(QSettings::IniFormat);
@@ -966,11 +985,18 @@ int main(int argc, char *argv[])
                                                       [](QQmlEngine* qmlEngine, QJSEngine*) -> QObject* {
                                                           return new SdlGamepadKeyNavigation(StreamingPreferences::get(qmlEngine));
                                                       });
-    qmlRegisterSingletonType<TvSound>("TvSound", 1, 0,
-                                      "TvSound",
-                                      [](QQmlEngine*, QJSEngine*) -> QObject* {
-                                          return new TvSound();
-                                      });
+    // Moonlight.BigPicture.exe is this same program under another name. It
+    // shares settings, pairing identity and saved PCs with Moonlight.exe
+    // (those live under the fixed organization/application names set above,
+    // not under the executable's name) and always opens in Big Picture.
+    static BigPicture* bigPicture =
+            new BigPicture(BigPicture::isBigPictureExecutable(QCoreApplication::applicationFilePath()), &app);
+    qmlRegisterSingletonType<BigPicture>("BigPicture", 1, 0,
+                                         "BigPicture",
+                                         [](QQmlEngine*, QJSEngine*) -> QObject* {
+                                             QQmlEngine::setObjectOwnership(bigPicture, QQmlEngine::CppOwnership);
+                                             return bigPicture;
+                                         });
     qmlRegisterSingletonType<StreamingPreferences>("StreamingPreferences", 1, 0,
                                                    "StreamingPreferences",
                                                    [](QQmlEngine* qmlEngine, QJSEngine*) -> QObject* {
@@ -1004,21 +1030,18 @@ int main(int argc, char *argv[])
     QString initialView;
     bool hasGUI = true;
 
-    // Load TV mode screens from Documents/MoonlightTV/gui when that exists
-    TvFiles::install(&engine);
+    // Load Big Picture screens from Documents/MoonlightBigPicture/gui when that exists
+    BigPictureFiles::install(&engine);
 
-    // When this program is started as "MoonlightTvMode" (for example the
-    // MoonlightTvMode.exe copy that ships next to Moonlight.exe), always
-    // open in TV mode, whatever the "Start in TV mode" setting says.
-    bool launchedAsTvMode = QFileInfo(QCoreApplication::applicationFilePath())
-                                .completeBaseName()
-                                .contains(QStringLiteral("TvMode"), Qt::CaseInsensitive);
+    // The UI is chosen here, before the first window exists, so the desktop
+    // UI never flashes when starting in Big Picture.
+    bool startInBigPicture = BigPicture::instance()->launchedDirectly() ||
+                             StreamingPreferences::get()->tvMode;
 
     switch (commandLineParserResult) {
     case GlobalCommandLineParser::NormalStartRequested:
-        initialView = (StreamingPreferences::get()->tvMode || launchedAsTvMode)
-                          ? "qrc:/gui/TvModeView.qml"
-                          : "qrc:/gui/PcView.qml";
+        initialView = startInBigPicture ? "qrc:/gui/BigPictureHomeView.qml"
+                                        : "qrc:/gui/PcView.qml";
         break;
     case GlobalCommandLineParser::StreamRequested:
         {
@@ -1064,8 +1087,9 @@ int main(int argc, char *argv[])
     if (hasGUI) {
         engine.rootContext()->setContextProperty("initialView", initialView);
         engine.rootContext()->setContextProperty("isGuiLaunch", commandLineParserResult == GlobalCommandLineParser::NormalStartRequested);
-        engine.rootContext()->setContextProperty("launchedAsTvMode", launchedAsTvMode);
-        engine.rootContext()->setContextProperty("tvFilesFolder", QDir::toNativeSeparators(TvFiles::folder()));
+        engine.rootContext()->setContextProperty("startInBigPicture",
+                                                 startInBigPicture && commandLineParserResult == GlobalCommandLineParser::NormalStartRequested);
+        engine.rootContext()->setContextProperty("bigPictureFilesFolder", QDir::toNativeSeparators(BigPictureFiles::folder()));
 
         // Load the main.qml file
         engine.load(QUrl(QStringLiteral("qrc:/gui/main.qml")));

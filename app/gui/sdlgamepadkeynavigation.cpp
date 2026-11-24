@@ -5,8 +5,14 @@
 #include <QWindow>
 
 #include "settings/mappingmanager.h"
+#include "bigpicture.h"
 
 #define AXIS_NAVIGATION_REPEAT_DELAY 150
+
+// Holding a D-pad direction starts repeating after this long...
+#define DPAD_REPEAT_INITIAL_DELAY 400
+// ...and then repeats this often
+#define DPAD_REPEAT_INTERVAL 110
 
 SdlGamepadKeyNavigation::SdlGamepadKeyNavigation(StreamingPreferences* prefs)
     : m_Prefs(prefs),
@@ -14,7 +20,10 @@ SdlGamepadKeyNavigation::SdlGamepadKeyNavigation(StreamingPreferences* prefs)
       m_UiNavMode(false),
       m_FirstPoll(false),
       m_HasFocus(false),
-      m_LastAxisNavigationEventTime(0)
+      m_LastAxisNavigationEventTime(0),
+      m_HeldDpadButton(-1),
+      m_HeldDpadSince(0),
+      m_LastDpadRepeat(0)
 {
     m_PollingTimer = new QTimer(this);
     connect(m_PollingTimer, &QTimer::timeout, this, &SdlGamepadKeyNavigation::onPollingTimerFired);
@@ -66,6 +75,10 @@ void SdlGamepadKeyNavigation::enable()
     }
 
     m_Enabled = true;
+    m_HeldDpadButton = -1;
+
+    // Big Picture picks its startup button prompts from these
+    BigPicture::noteConnectedGamepads(m_Gamepads);
 
     // Start the polling timer if the window is focused
     updateTimerState();
@@ -92,6 +105,7 @@ void SdlGamepadKeyNavigation::disable()
 void SdlGamepadKeyNavigation::notifyWindowFocus(bool hasFocus)
 {
     m_HasFocus = hasFocus;
+    m_HeldDpadButton = -1;
     updateTimerState();
 }
 
@@ -108,6 +122,9 @@ void SdlGamepadKeyNavigation::onPollingTimerFired()
         SDL_FlushEvent(SDL_CONTROLLERBUTTONDOWN);
         SDL_FlushEvent(SDL_CONTROLLERBUTTONUP);
         m_FirstPoll = false;
+
+        // A release may have been flushed, so don't keep repeating
+        m_HeldDpadButton = -1;
     }
 
     // Peep events rather than polling to avoid calling SDL_PumpEvents()
@@ -125,6 +142,31 @@ void SdlGamepadKeyNavigation::onPollingTimerFired()
             QEvent::Type type =
                     event.type == SDL_CONTROLLERBUTTONDOWN ?
                         QEvent::Type::KeyPress : QEvent::Type::KeyRelease;
+
+            // Tell Big Picture which controller is in use *before* the press
+            // becomes a Qt key event, so it never looks like keyboard input.
+            if (event.type == SDL_CONTROLLERBUTTONDOWN) {
+                BigPicture::noteGamepadInput(SDL_GameControllerFromInstanceID(event.cbutton.which));
+            }
+
+            // Track a held D-pad direction for repeating
+            switch (event.cbutton.button) {
+            case SDL_CONTROLLER_BUTTON_DPAD_UP:
+            case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+            case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+            case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+                if (event.type == SDL_CONTROLLERBUTTONDOWN) {
+                    m_HeldDpadButton = event.cbutton.button;
+                    m_HeldDpadSince = SDL_GetTicks();
+                    m_LastDpadRepeat = m_HeldDpadSince;
+                }
+                else if (m_HeldDpadButton == event.cbutton.button) {
+                    m_HeldDpadButton = -1;
+                }
+                break;
+            default:
+                break;
+            }
 
             // Swap face buttons if needed
             if (m_Prefs->swapFaceButtons) {
@@ -213,10 +255,31 @@ void SdlGamepadKeyNavigation::onPollingTimerFired()
         }
     }
 
+    // Repeat a held D-pad direction
+    if (m_HeldDpadButton >= 0) {
+        Uint32 now = SDL_GetTicks();
+        if (now - m_HeldDpadSince >= DPAD_REPEAT_INITIAL_DELAY &&
+                now - m_LastDpadRepeat >= DPAD_REPEAT_INTERVAL) {
+            Qt::KeyboardModifiers modifiers = Qt::NoModifier;
+            Qt::Key key = dpadKey(m_HeldDpadButton, modifiers);
+            sendKey(QEvent::Type::KeyPress, key, modifiers);
+            sendKey(QEvent::Type::KeyRelease, key, modifiers);
+            m_LastDpadRepeat = now;
+        }
+    }
+
     // Handle analog sticks by polling
     for (auto gc : std::as_const(m_Gamepads)) {
         short leftX = SDL_GameControllerGetAxis(gc, SDL_CONTROLLER_AXIS_LEFTX);
         short leftY = SDL_GameControllerGetAxis(gc, SDL_CONTROLLER_AXIS_LEFTY);
+        if (SDL_GetTicks() - m_LastAxisNavigationEventTime < AXIS_NAVIGATION_REPEAT_DELAY) {
+            // Do nothing
+        }
+        else if (leftY < -30000 || leftY > 30000 || leftX < -30000 || leftX > 30000) {
+            // Deliberate stick movement (drift never gets this far)
+            BigPicture::noteGamepadInput(gc);
+        }
+
         if (SDL_GetTicks() - m_LastAxisNavigationEventTime < AXIS_NAVIGATION_REPEAT_DELAY) {
             // Do nothing
         }
@@ -255,6 +318,25 @@ void SdlGamepadKeyNavigation::onPollingTimerFired()
             sendKey(QEvent::Type::KeyRelease, Qt::Key_Right);
             m_LastAxisNavigationEventTime = SDL_GetTicks();
         }
+    }
+}
+
+Qt::Key SdlGamepadKeyNavigation::dpadKey(int button, Qt::KeyboardModifiers& modifiers)
+{
+    modifiers = Qt::NoModifier;
+    switch (button) {
+    case SDL_CONTROLLER_BUTTON_DPAD_UP:
+        if (m_UiNavMode) {
+            modifiers = Qt::ShiftModifier;
+            return Qt::Key_Tab;
+        }
+        return Qt::Key_Up;
+    case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+        return m_UiNavMode ? Qt::Key_Tab : Qt::Key_Down;
+    case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+        return Qt::Key_Left;
+    default:
+        return Qt::Key_Right;
     }
 }
 

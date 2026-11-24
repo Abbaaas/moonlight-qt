@@ -4,7 +4,7 @@ import QtQuick
 
 Item {
     id: backdrop
-    property TvTheme theme: TvTheme {}
+    property BigPictureTheme theme: BigPictureTheme {}
     clip: true
 
     Rectangle {

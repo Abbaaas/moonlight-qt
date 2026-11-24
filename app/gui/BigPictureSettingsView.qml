@@ -1,6 +1,8 @@
-// TV mode settings, laid out like Moonlight's standard settings page:
+// Big Picture settings, laid out like Moonlight's standard settings page:
 // two columns of groups in the same order (Basic, Audio, Host, UI on the
-// left; Input, Gamepad, Advanced on the right), in the TV mode style.
+// left; Input, Gamepad, Advanced on the right), in the Big Picture style.
+// Every setting reads and writes StreamingPreferences directly; opening this
+// screen or Big Picture itself never changes a stream setting.
 //
 // Controller: Up/Down moves through the settings in reading order (down the
 // left column, then down the right one), Left/Right changes the value,
@@ -11,14 +13,16 @@ import QtQuick.Controls
 import ComputerManager 1.0
 import StreamingPreferences 1.0
 import SystemProperties 1.0
-import TvSound 1.0
+import BigPicture 1.0
 
 FocusScope {
     id: root
     objectName: qsTr("Settings")
     focus: true
 
-    TvTheme { id: tvTheme }
+    readonly property bool isBigPicture: true
+
+    BigPictureTheme { id: tvTheme }
 
     // Bumped after every change so value labels re-read the preferences.
     property int revision: 0
@@ -91,7 +95,7 @@ FocusScope {
     // dir: -1 (Left) or +1 (Right)
     function changeValue(row, dir) {
         if (!row) return
-        if (!isEnabled(row)) { TvSound.play("error"); return }
+        if (!isEnabled(row)) { BigPicture.playSound("error"); return }
 
         if (row.kind === "toggle") {
             var want = dir > 0
@@ -114,28 +118,28 @@ FocusScope {
         } else {
             return
         }
-        TvSound.play("toggle")
+        BigPicture.playSound("toggle")
         revision++
     }
 
     function activate(row) {
         if (!row) return
-        if (!isEnabled(row)) { TvSound.play("error"); return }
+        if (!isEnabled(row)) { BigPicture.playSound("error"); return }
 
         if (row.kind === "toggle") {
             row.set(!row.get())
-            TvSound.play("toggle")
+            BigPicture.playSound("toggle")
         } else if (row.kind === "choice") {
             // A steps forward through the choices, wrapping around.
             var i = indexOfVal(row)
             row.set(row.options[(i + 1) % row.options.length].val)
-            TvSound.play("toggle")
+            BigPicture.playSound("toggle")
         } else if (row.kind === "bitrate") {
             StreamingPreferences.autoAdjustBitrate = true
             autoBitrate()
-            TvSound.play("toggle")
+            BigPicture.playSound("toggle")
         } else if (row.kind === "action") {
-            TvSound.play("select")
+            BigPicture.playSound("select")
             row.run()
         }
         revision++
@@ -144,7 +148,7 @@ FocusScope {
     function select(gi) {
         if (gi < 0 || gi >= flatRows.length || gi === currentIndex) return
         currentIndex = gi
-        TvSound.play("move")
+        BigPicture.playSound("move")
         ensureVisible(gi)
     }
 
@@ -335,7 +339,7 @@ FocusScope {
                        }
                    }),
             choice(qsTr("GUI display mode"),
-                   qsTr("How Moonlight's window opens outside TV mode. TV mode is always full screen."),
+                   qsTr("How Moonlight's window opens outside Big Picture. Big Picture is always full screen."),
                    [ { label: qsTr("Windowed"),   val: StreamingPreferences.UI_WINDOWED },
                      { label: qsTr("Maximized"),  val: StreamingPreferences.UI_MAXIMIZED },
                      { label: qsTr("Fullscreen"), val: StreamingPreferences.UI_FULLSCREEN } ],
@@ -359,12 +363,12 @@ FocusScope {
                    qsTr("Prevents the screensaver from starting or the display from going to sleep while streaming."),
                    function() { return StreamingPreferences.keepAwake },
                    function(v) { StreamingPreferences.keepAwake = v }),
-            toggle(qsTr("Start in TV mode"),
-                   qsTr("Opens Moonlight straight into TV mode. The Moonlight TV Mode shortcut always opens in TV mode either way."),
+            toggle(qsTr("Open Moonlight.exe in Big Picture"),
+                   qsTr("Makes Moonlight.exe start in Big Picture too. Moonlight.BigPicture.exe always starts in Big Picture either way."),
                    function() { return StreamingPreferences.tvMode },
                    function(v) { StreamingPreferences.tvMode = v }),
-            toggle(qsTr("Navigation sounds in TV mode"),
-                   qsTr("Plays a soft sound when you move, select and go back in TV mode."),
+            toggle(qsTr("Big Picture navigation sounds"),
+                   qsTr("Plays a soft sound when you move, select and go back in Big Picture."),
                    function() { return StreamingPreferences.tvSounds },
                    function(v) { StreamingPreferences.tvSounds = v })
         ]}
@@ -510,22 +514,30 @@ FocusScope {
 
     // ---- Lifecycle -------------------------------------------------------------
 
-    StackView.onActivated: {
+    StackView.onActivating: {
         toolBar.visible = false
+        window.ensureBigPictureWindow()
+    }
+
+    StackView.onActivated: {
         revision++
         root.forceActiveFocus()
         ensureVisible(currentIndex)
     }
 
     StackView.onDeactivating: {
-        toolBar.visible = true
         // Save so a stream started next picks up the changes
         StreamingPreferences.save()
     }
 
-    StackView.onRemoved: TvSound.play("back")
+    StackView.onRemoved: BigPicture.playSound("back")
 
     Component.onDestruction: StreamingPreferences.save()
+
+    // Start / Y and X / Square do nothing here (and must not open the desktop page)
+    Keys.onPressed: function(event) {
+        if (event.key === Qt.Key_Hangup || event.key === Qt.Key_Menu) event.accepted = true
+    }
 
     Keys.onUpPressed:     select(currentIndex - 1)
     Keys.onDownPressed:   select(currentIndex + 1)
@@ -537,15 +549,24 @@ FocusScope {
 
     // ---- Layout ----------------------------------------------------------------
 
-    TvBackdrop { anchors.fill: parent; theme: tvTheme }
+    BigPictureBackdrop { anchors.fill: parent; theme: tvTheme }
+
+    // Designed at 1920x1080 and scaled to fit (1080p and 4K look the same)
+    Item {
+        id: stage
+        readonly property real k: tvTheme.stageScale(root.width, root.height)
+        width: root.width / k
+        height: root.height / k
+        scale: k
+        transformOrigin: Item.TopLeft
 
     Item {
         id: safe
         anchors.fill: parent
-        anchors.leftMargin: tvTheme.safeX(root.width)
-        anchors.rightMargin: tvTheme.safeX(root.width)
-        anchors.topMargin: tvTheme.safeY(root.height)
-        anchors.bottomMargin: tvTheme.safeY(root.height)
+        anchors.leftMargin: tvTheme.safeX(stage.width)
+        anchors.rightMargin: tvTheme.safeX(stage.width)
+        anchors.topMargin: tvTheme.safeY(stage.height)
+        anchors.bottomMargin: tvTheme.safeY(stage.height)
 
         Text {
             id: title
@@ -605,7 +626,7 @@ FocusScope {
                             model: flick.groups
 
                             // One group, like the standard page's group boxes
-                            TvPanel {
+                            BigPicturePanel {
                                 id: panel
                                 readonly property var group: modelData
                                 theme: tvTheme
@@ -751,7 +772,7 @@ FocusScope {
                                                 hoverEnabled: true
                                                 cursorShape: Qt.PointingHandCursor
                                                 onPositionChanged: function(mouse) {
-                                                    if (tvTheme.pointerMoved(rowItem, mouse.x, mouse.y))
+                                                    if (BigPicture.inputMode === "keyboard" && tvTheme.pointerMoved(rowItem, mouse.x, mouse.y))
                                                         root.select(rowItem.row.gi)
                                                 }
                                                 onClicked: {
@@ -770,7 +791,7 @@ FocusScope {
         }
 
         // ---- Bottom: what the selected setting does, plus button prompts ----
-        TvHintBar {
+        BigPictureHintBar {
             id: hints
             theme: tvTheme
             anchors.left: parent.left
@@ -781,15 +802,18 @@ FocusScope {
                 var h = []
                 var row = root.current
                 if (row && (row.kind === "choice" || row.kind === "bitrate" || row.kind === "toggle"))
-                    h.push({ button: "◀▶", label: qsTr("Change") })
-                if (row && row.kind === "toggle") h.push({ button: "A", label: qsTr("On/off") })
-                else if (row && row.kind === "bitrate") h.push({ button: "A", label: qsTr("Default") })
-                else if (row && row.kind === "action") h.push({ button: "A", label: qsTr("Open") })
-                h.push({ button: "B", label: qsTr("Back") })
+                    h.push({ action: "change", label: qsTr("Change") })
+                if (row && row.kind === "toggle") h.push({ action: "confirm", label: qsTr("On/off") })
+                else if (row && row.kind === "bitrate") h.push({ action: "confirm", label: qsTr("Default") })
+                else if (row && row.kind === "choice") h.push({ action: "confirm", label: qsTr("Next") })
+                else if (row && row.kind === "action") h.push({ action: "confirm", label: qsTr("Open") })
+                h.push({ action: "back", label: qsTr("Back") })
                 return h
             }
         }
     }
+
+    } // stage
 
     // Set by the two column Flickables
     property var leftFlickRef: null

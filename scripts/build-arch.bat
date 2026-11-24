@@ -300,8 +300,9 @@ echo Copying application binary to deployment directory
 copy %BUILD_FOLDER%\app\%BUILD_CONFIG%\Moonlight.exe %DEPLOY_FOLDER%
 if !ERRORLEVEL! NEQ 0 goto Error
 
-rem MoonlightTvMode.exe is the same program; it opens in TV mode because of its name
-copy %BUILD_FOLDER%\app\%BUILD_CONFIG%\Moonlight.exe %DEPLOY_FOLDER%\MoonlightTvMode.exe
+rem Moonlight.BigPicture.exe is the same program; it opens in Big Picture because of its name.
+rem It uses the same DLLs, QML and settings as Moonlight.exe, so it only needs to sit next to it.
+copy %BUILD_FOLDER%\app\%BUILD_CONFIG%\Moonlight.exe %DEPLOY_FOLDER%\Moonlight.BigPicture.exe
 if !ERRORLEVEL! NEQ 0 goto Error
 
 echo Building portable package

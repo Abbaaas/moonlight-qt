@@ -33,6 +33,9 @@ private:
 
     void pumpGamepadEvents();
 
+    // D-pad key for a button, honoring UI nav mode (Tab/Shift+Tab for up/down)
+    Qt::Key dpadKey(int button, Qt::KeyboardModifiers& modifiers);
+
 private slots:
     void onPollingTimerFired();
 
@@ -45,4 +48,9 @@ private:
     bool m_FirstPoll;
     bool m_HasFocus;
     Uint32 m_LastAxisNavigationEventTime;
+
+    // Holding a D-pad direction repeats it, so long lists can be scrolled
+    int m_HeldDpadButton;
+    Uint32 m_HeldDpadSince;
+    Uint32 m_LastDpadRepeat;
 };

@@ -1309,7 +1309,7 @@ Flickable {
                 CheckBox {
                     id: tvModeCheck
                     width: parent.width
-                    text: qsTr("Start in TV mode (full screen, controller friendly)")
+                    text: qsTr("Open Moonlight.exe in Big Picture")
                     font.pointSize: 12
                     checked: StreamingPreferences.tvMode
                     onCheckedChanged: {
@@ -1319,7 +1319,7 @@ Flickable {
                     ToolTip.delay: 1000
                     ToolTip.timeout: 5000
                     ToolTip.visible: hovered
-                    ToolTip.text: qsTr("Opens Moonlight full screen with a menu you can use from the couch with a controller. Takes effect the next time Moonlight starts.")
+                    ToolTip.text: qsTr("Makes Moonlight.exe start in the full-screen, controller-friendly Big Picture interface. Moonlight.BigPicture.exe always starts in Big Picture. Takes effect the next time Moonlight starts.")
                 }
             }
         }

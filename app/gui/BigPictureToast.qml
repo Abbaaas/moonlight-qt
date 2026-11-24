@@ -3,7 +3,7 @@ import QtQuick
 
 Rectangle {
     id: toast
-    property TvTheme theme: TvTheme {}
+    property BigPictureTheme theme: BigPictureTheme {}
 
     function show(message) {
         label.text = message

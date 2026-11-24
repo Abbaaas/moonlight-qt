@@ -19,14 +19,16 @@
         <file>gui/NavigableDialog.qml</file>
         <file>gui/CenteredGridView.qml</file>
         <file>gui/CliPair.qml</file>
-        <file>gui/TvModeView.qml</file>
-        <file>gui/TvGamesView.qml</file>
-        <file>gui/TvMenuItem.qml</file>
-        <file>gui/TvPanel.qml</file>
-        <file>gui/TvHintBar.qml</file>
-        <file>gui/TvBackdrop.qml</file>
-        <file>gui/TvTheme.qml</file>
-        <file>gui/TvToast.qml</file>
-        <file>gui/TvSettingsView.qml</file>
+        <file>gui/BigPictureHomeView.qml</file>
+        <file>gui/BigPictureAppsView.qml</file>
+        <file>gui/BigPictureSettingsView.qml</file>
+        <file>gui/BigPictureMenuItem.qml</file>
+        <file>gui/BigPicturePanel.qml</file>
+        <file>gui/BigPictureHintBar.qml</file>
+        <file>gui/BigPictureBackdrop.qml</file>
+        <file>gui/BigPictureTheme.qml</file>
+        <file>gui/BigPictureToast.qml</file>
+        <file>gui/BigPictureGlyph.qml</file>
+        <file>gui/BigPictureDialog.qml</file>
     </qresource>
 </RCC>

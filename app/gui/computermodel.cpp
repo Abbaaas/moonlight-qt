@@ -30,6 +30,8 @@ QVariant ComputerModel::data(const QModelIndex& index, int role) const
     switch (role) {
     case NameRole:
         return computer->name;
+    case UuidRole:
+        return computer->uuid;
     case OnlineRole:
         return computer->state == NvComputer::CS_ONLINE;
     case PairedRole:
@@ -110,6 +112,7 @@ QHash<int, QByteArray> ComputerModel::roleNames() const
     names[StatusUnknownRole] = "statusUnknown";
     names[ServerSupportedRole] = "serverSupported";
     names[DetailsRole] = "details";
+    names[UuidRole] = "uuid";
 
     return names;
 }
