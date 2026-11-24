@@ -73,6 +73,8 @@ private:
     static QString familyOf(SDL_GameController* gc);
     static QString guidOf(SDL_GameController* gc);
 
+    void shutdown();
+    void stopSound();
     void switchToGamepad(const QString& family);
     void switchToKeyboard();
     void applyCursor();

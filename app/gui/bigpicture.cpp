@@ -41,15 +41,33 @@ BigPicture::BigPicture(bool launchedDirectly, QObject* parent)
     m_SinceLastAction.start();
     m_MouseAnchor = QCursor::pos();
     qApp->installEventFilter(this);
+
+    // Clean up while the app is still fully alive: a sound playing from our
+    // buffers or a hidden cursor must not outlive QGuiApplication.
+    connect(qApp, &QCoreApplication::aboutToQuit, this, &BigPicture::shutdown);
 }
 
 BigPicture::~BigPicture()
 {
-    qApp->removeEventFilter(this);
-    if (m_CursorHidden) {
-        QGuiApplication::restoreOverrideCursor();
-    }
+    // Nothing here touches QGuiApplication: this object is destroyed as one of
+    // its children, after the application itself has been torn down. The event
+    // filter is removed automatically when this object is destroyed.
+    stopSound();
     s_Instance = nullptr;
+}
+
+void BigPicture::stopSound()
+{
+#ifdef Q_OS_WIN32
+    // Stop any sound still reading from m_Sounds before those buffers go away
+    PlaySoundW(nullptr, nullptr, 0);
+#endif
+}
+
+void BigPicture::shutdown()
+{
+    stopSound();
+    setActive(false);   // shows the cursor again if Big Picture hid it
 }
 
 BigPicture* BigPicture::instance()
