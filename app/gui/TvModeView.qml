@@ -8,6 +8,7 @@ import ComputerModel 1.0
 import ComputerManager 1.0
 import StreamingPreferences 1.0
 import SdlGamepadKeyNavigation 1.0
+import TvSound 1.0
 
 Item {
     id: root
@@ -64,17 +65,21 @@ Item {
     function openHost(index, m) {
         var state = hostState(m)
         if (state === "ready") {
+            TvSound.play("select")
             stackView.push("qrc:/gui/TvGamesView.qml",
                            { "computerIndex": index, "hostName": m.name })
         } else if (state === "asleep") {
+            TvSound.play("select")
             computerModel.wakeComputer(index)
             toast.show(qsTr("Wake signal sent to %1").arg(m.name))
         } else {
+            TvSound.play("error")
             toast.show(bodyText(state))
         }
     }
 
     function runAction(key) {
+        TvSound.play("select")
         if (key === "settings") {
             stackView.push("qrc:/gui/TvSettingsView.qml")
         } else if (key === "desktop") {
@@ -336,7 +341,9 @@ Item {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
-            leftText: Qt.formatTime(clockTick.now, Qt.locale().timeFormat(Locale.ShortFormat))
+            leftText: Qt.formatTime(clockTick.now, Qt.locale().timeFormat(Locale.ShortFormat)) +
+                      ((typeof tvFilesFolder !== "undefined" && tvFilesFolder !== "")
+                       ? "    " + qsTr("Using TV mode files from %1").arg(tvFilesFolder) : "")
             hints: root.preview.verb !== "" ? [ { button: "A", label: root.preview.verb } ] : []
         }
 

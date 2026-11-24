@@ -25,6 +25,24 @@ QtObject {
     readonly property int fontBody:    26
     readonly property int fontSmall:   22
 
+    // True only when the mouse really moved. Lists scrolling under a mouse
+    // cursor that's sitting still must not move the selection (that made
+    // controller navigation look stuck).
+    property point lastPointer: Qt.point(-1, -1)
+    property bool pointerKnown: false
+    function pointerMoved(item, x, y) {
+        var p = item.mapToItem(null, x, y)
+        if (!pointerKnown) {
+            pointerKnown = true
+            lastPointer = p
+            return false
+        }
+        if (Math.abs(p.x - lastPointer.x) < 2 && Math.abs(p.y - lastPointer.y) < 2)
+            return false
+        lastPointer = p
+        return true
+    }
+
     // TV safe area, about 5% of each edge.
     function safeX(w) { return Math.round(w * 0.05) }
     function safeY(h) { return Math.round(h * 0.05) }

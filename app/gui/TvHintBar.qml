@@ -18,12 +18,17 @@ Rectangle {
         anchors.left: parent.left
         anchors.leftMargin: 32
         anchors.verticalCenter: parent.verticalCenter
+        width: parent.width - hintRow.width - 96
+        wrapMode: Text.WordWrap
+        maximumLineCount: 2
+        elide: Text.ElideRight
         text: bar.leftText
-        color: bar.theme.textFaint
+        color: bar.theme.textMuted
         font.pixelSize: bar.theme.fontSmall
     }
 
     Row {
+        id: hintRow
         anchors.right: parent.right
         anchors.rightMargin: 32
         anchors.verticalCenter: parent.verticalCenter

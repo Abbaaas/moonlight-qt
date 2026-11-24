@@ -156,6 +156,7 @@ public:
     Q_PROPERTY(bool swapFaceButtons MEMBER swapFaceButtons NOTIFY swapFaceButtonsChanged)
     Q_PROPERTY(bool keepAwake MEMBER keepAwake NOTIFY keepAwakeChanged)
     Q_PROPERTY(bool tvMode MEMBER tvMode NOTIFY tvModeChanged)
+    Q_PROPERTY(bool tvSounds MEMBER tvSounds NOTIFY tvSoundsChanged)
     Q_PROPERTY(CaptureSysKeysMode captureSysKeysMode MEMBER captureSysKeysMode NOTIFY captureSysKeysModeChanged)
     Q_PROPERTY(Language language MEMBER language NOTIFY languageChanged);
 
@@ -190,6 +191,7 @@ public:
     bool swapFaceButtons;
     bool keepAwake;
     bool tvMode;
+    bool tvSounds;
     int packetSize;
     AudioConfig audioConfig;
     VideoCodecConfig videoCodecConfig;
@@ -239,6 +241,7 @@ signals:
     void captureSysKeysModeChanged();
     void keepAwakeChanged();
     void tvModeChanged();
+    void tvSoundsChanged();
     void languageChanged();
     void rendererSelectionChanged();
 

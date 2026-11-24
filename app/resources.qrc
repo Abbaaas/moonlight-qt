@@ -11,6 +11,11 @@
         <file>res/no_app_image.png</file>
         <file>res/settings.svg</file>
         <file>res/tv_mode.svg</file>
+        <file>res/sounds/move.wav</file>
+        <file>res/sounds/toggle.wav</file>
+        <file>res/sounds/select.wav</file>
+        <file>res/sounds/back.wav</file>
+        <file>res/sounds/error.wav</file>
         <file>res/arrow_left.svg</file>
         <file>res/question_mark.svg</file>
         <file>res/moonlight.svg</file>

@@ -1,6 +1,8 @@
 // One line of the launcher menu: large text, a lunar bar and soft highlight when selected.
 import QtQuick
 
+import TvSound 1.0
+
 Item {
     id: item
 
@@ -13,6 +15,8 @@ Item {
 
     signal activated()
     signal hovered()
+
+    onCurrentChanged: if (current) TvSound.play("move")
 
     width: ListView.view ? ListView.view.width : 520
     height: detail !== "" ? 104 : 80
@@ -69,7 +73,9 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        onEntered: item.hovered()
+        onPositionChanged: function(mouse) {
+            if (item.theme.pointerMoved(item, mouse.x, mouse.y)) item.hovered()
+        }
         onClicked: item.activated()
     }
 }

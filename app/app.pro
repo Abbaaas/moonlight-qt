@@ -202,6 +202,7 @@ SOURCES += \
     path.cpp \
     settings/mappingmanager.cpp \
     gui/sdlgamepadkeynavigation.cpp \
+    gui/tvsupport.cpp \
     streaming/video/overlaymanager.cpp \
     backend/systemproperties.cpp \
     wm.cpp
@@ -240,6 +241,7 @@ HEADERS += \
     path.h \
     settings/mappingmanager.h \
     gui/sdlgamepadkeynavigation.h \
+    gui/tvsupport.h \
     streaming/video/overlaymanager.h \
     backend/systemproperties.h
 

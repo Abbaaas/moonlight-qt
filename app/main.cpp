@@ -13,6 +13,7 @@
 #include <QElapsedTimer>
 #include <QTemporaryFile>
 #include <QFileInfo>
+#include <QDir>
 #include <QRegularExpression>
 
 #ifdef Q_OS_UNIX
@@ -54,6 +55,7 @@
 #include "backend/systemproperties.h"
 #include "streaming/session.h"
 #include "settings/streamingpreferences.h"
+#include "gui/tvsupport.h"
 #include "gui/sdlgamepadkeynavigation.h"
 
 #if defined(Q_OS_WIN32)
@@ -964,6 +966,11 @@ int main(int argc, char *argv[])
                                                       [](QQmlEngine* qmlEngine, QJSEngine*) -> QObject* {
                                                           return new SdlGamepadKeyNavigation(StreamingPreferences::get(qmlEngine));
                                                       });
+    qmlRegisterSingletonType<TvSound>("TvSound", 1, 0,
+                                      "TvSound",
+                                      [](QQmlEngine*, QJSEngine*) -> QObject* {
+                                          return new TvSound();
+                                      });
     qmlRegisterSingletonType<StreamingPreferences>("StreamingPreferences", 1, 0,
                                                    "StreamingPreferences",
                                                    [](QQmlEngine* qmlEngine, QJSEngine*) -> QObject* {
@@ -996,6 +1003,9 @@ int main(int argc, char *argv[])
     QQmlApplicationEngine engine;
     QString initialView;
     bool hasGUI = true;
+
+    // Load TV mode screens from Documents/MoonlightTV/gui when that exists
+    TvFiles::install(&engine);
 
     // When this program is started as "MoonlightTvMode" (for example the
     // MoonlightTvMode.exe copy that ships next to Moonlight.exe), always
@@ -1055,6 +1065,7 @@ int main(int argc, char *argv[])
         engine.rootContext()->setContextProperty("initialView", initialView);
         engine.rootContext()->setContextProperty("isGuiLaunch", commandLineParserResult == GlobalCommandLineParser::NormalStartRequested);
         engine.rootContext()->setContextProperty("launchedAsTvMode", launchedAsTvMode);
+        engine.rootContext()->setContextProperty("tvFilesFolder", QDir::toNativeSeparators(TvFiles::folder()));
 
         // Load the main.qml file
         engine.load(QUrl(QStringLiteral("qrc:/gui/main.qml")));

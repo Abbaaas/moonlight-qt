@@ -5,6 +5,7 @@ import QtQuick.Controls
 
 import AppModel 1.0
 import ComputerManager 1.0
+import TvSound 1.0
 
 Item {
     id: root
@@ -42,6 +43,7 @@ Item {
     StackView.onDeactivating: {
         appModel.computerLost.disconnect(computerLost)
     }
+    StackView.onRemoved: TvSound.play("back")
 
     // The host reports what's running; check regularly while this page is visible.
     Timer {
@@ -61,6 +63,7 @@ Item {
 
     function launch(index, m) {
         if (runningId !== 0 && runningId !== m.appid) {
+            TvSound.play("error")
             toast.show(qsTr("Quit %1 first to start %2").arg(runningName).arg(m.name))
             quitItem.forceActiveFocus()
             return
@@ -71,6 +74,7 @@ Item {
             toast.show(qsTr("Couldn't start the stream"))
             return
         }
+        TvSound.play("select")
         var segue = component.createObject(stackView, {
             "appName": m.name,
             "session": appModel.createSessionForApp(index),
@@ -82,6 +86,7 @@ Item {
     // Uses Moonlight's own quit screen, which shows progress and any errors.
     function quitRunning() {
         if (runningId === 0) return
+        TvSound.play("select")
         var component = Qt.createComponent("QuitSegue.qml")
         stackView.push(component.createObject(stackView, {
             "appName": runningName,
