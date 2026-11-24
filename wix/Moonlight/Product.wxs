@@ -38,6 +38,12 @@
                 Target="[#MoonlightExe]"
                 Directory="ApplicationProgramsFolder"
                 WorkingDirectory="INSTALLFOLDER" />
+      <Shortcut Id="TvModeStartMenuShortcut"
+                Name="$(var.ShortcutName) TV Mode"
+                Description="Open Moonlight full screen in TV mode"
+                Target="[#MoonlightTvModeExe]"
+                Directory="ApplicationProgramsFolder"
+                WorkingDirectory="INSTALLFOLDER" />
       <RemoveFolder Id="CleanupStartMenuShortcut"
                     Directory="ApplicationProgramsFolder"
                     On="uninstall" />
@@ -94,6 +100,20 @@
                                   Name="$(var.FullName)" />
         </File>
       </Component>
+      <!-- Same program as Moonlight.exe. Started under this name it always
+           opens in TV mode (see main.cpp). -->
+      <Component Id="MoonlightTvMode">
+        <File Id="MoonlightTvModeExe"
+              Name="MoonlightTvMode.exe"
+              KeyPath="yes"
+              Checksum="yes"
+              Source="$(var.BuildDir)\app\$(var.Configuration)\Moonlight.exe">
+          <fire:FirewallException Id="MoonlightTvModeFirewallException"
+                                  Scope="any"
+                                  IgnoreFailure="yes"
+                                  Name="$(var.FullName) (TV Mode)" />
+        </File>
+      </Component>
     </DirectoryRef>
 
     <ComponentGroup Id="MoonlightDependencies" Directory="INSTALLFOLDER">
@@ -102,6 +122,7 @@
 
     <Feature Id="ProductFeature" Title="Moonlight" Level="1" ConfigurableDirectory="INSTALLFOLDER">
       <ComponentRef Id="Moonlight" />
+      <ComponentRef Id="MoonlightTvMode" />
       <ComponentRef Id="MoonlightShortcuts" />
       <ComponentRef Id="MoonlightDesktopShortcutState" />
       <ComponentRef Id="MoonlightDesktopShortcut" />
